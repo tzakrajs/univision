@@ -97,7 +97,7 @@ def print_image_as_unicode(image_file, mode):
     im = Image.open(image_file)
     imgwidth, imgheight = im.size
     for row in range(imgheight//height):
-        last_avg_color = np.array([0,0,0,0])
+        last_avg_color = np.array([0,0,0])
         for column in range(imgwidth//width):
             box = (column*width, row*height, (column+1)*width, (row+1)*height)
             cropped = im.crop(box)
@@ -120,12 +120,13 @@ def print_image_as_unicode(image_file, mode):
             if mode == 'x256':
                 # Credit: Ruan B. (until URL)
                 avg_color_per_row = np.average(cropped, axis=0)
-                avg_color = np.average(avg_color_per_row, axis=0)
-                x256_color = str(x256.from_rgb(*avg_color[:3]))
+                avg_color = np.average(avg_color_per_row, axis=0)[:3]
+                x256_color = str(x256.from_rgb(*avg_color))
                 # https://stackoverflow.com/a/43112217
-                composite_color = np.average(np.array([avg_color, last_avg_color]),
+                composite_color = np.average(np.array([avg_color,
+                                                       last_avg_color]),
                                              axis=0)
-                x256_bg_color = str(x256.from_rgb(*avg_color[:3]))
+                x256_bg_color = str(x256.from_rgb(*avg_color))
                 if lowest_unicode == chr(32):
                     print('\033[48;5;{0}m{1}\033[0m'.format(x256_color,
                                                            chr(32)), end='')
