@@ -85,7 +85,7 @@ def create_unicode_image(unicode_character):
     return unicode_file
 
 
-def print_image_as_unicode(infile):
+def print_image_as_unicode(image_file, mode):
     """
     Ingest a file and slice it into 10x20 bitmaps which are compared with
     bitmaps of unicode charcters. The most similar character is printed with
@@ -94,18 +94,13 @@ def print_image_as_unicode(infile):
     height = 20 # height of unicode character
     width = 10 # width of the unicode characters we are using
     # Credit ElTero and ABM (https://stackoverflow.com/a/7051075)
-    im = Image.open(infile)
+    im = Image.open(image_file)
     imgwidth, imgheight = im.size
     for row in range(imgheight//height):
-        last_avg_color = np.array([0,0,0])
+        last_avg_color = np.array([0,0,0,0])
         for column in range(imgwidth//width):
             box = (column*width, row*height, (column+1)*width, (row+1)*height)
             cropped = im.crop(box)
-            # Credit: Ruan B. (until URL)
-            avg_color_per_row = np.average(cropped, axis=0)
-            avg_color = np.average(avg_color_per_row, axis=0)
-            x256_color = str(x256.from_rgb(*avg_color[:3]))
-            # https://stackoverflow.com/a/43112217
             lowest_value = 100000
             lowest_unicode = None
             characters = []
@@ -122,20 +117,32 @@ def print_image_as_unicode(infile):
                 if dissimilarity < lowest_value:
                     lowest_value = dissimilarity
                     lowest_unicode = unicode
-            composite_color = np.average(np.array([avg_color, last_avg_color]),
-                                         axis=0)
-            x256_bg_color = str(x256.from_rgb(*avg_color[:3]))
-            if lowest_unicode == chr(32):
-                print('\033[48;5;{0}m{1}\033[0m'.format(x256_color,
-                                                       chr(32)), end='')
-            else:
-                print('\033[38;5;{0}m\033[48;5;{1}m'.format(x256_color,
-                                                            x256_bg_color) + 
-                      '{0}\033[0m'.format(lowest_unicode), end='')
-            last_avg_color = avg_color
+            if mode == 'x256':
+                # Credit: Ruan B. (until URL)
+                avg_color_per_row = np.average(cropped, axis=0)
+                avg_color = np.average(avg_color_per_row, axis=0)
+                x256_color = str(x256.from_rgb(*avg_color[:3]))
+                # https://stackoverflow.com/a/43112217
+                composite_color = np.average(np.array([avg_color, last_avg_color]),
+                                             axis=0)
+                x256_bg_color = str(x256.from_rgb(*avg_color[:3]))
+                if lowest_unicode == chr(32):
+                    print('\033[48;5;{0}m{1}\033[0m'.format(x256_color,
+                                                           chr(32)), end='')
+                else:
+                    print('\033[38;5;{0}m\033[48;5;{1}m'.format(x256_color,
+                                                                x256_bg_color) + 
+                          '{0}\033[0m'.format(lowest_unicode), end='')
+                last_avg_color = avg_color
+            elif mode == 'bw':
+                print(lowest_unicode, end='')
         print('', end='\r\n\x1b[39m')
 
 
 if __name__ == '__main__':
     image = open(sys.argv[1], 'rb')
-    print_image_as_unicode(image)
+    if len(sys.argv) == 3:
+        mode = sys.argv[2]
+    else:
+        mode = 'x256'
+    print_image_as_unicode(image, mode)
