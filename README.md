@@ -26,16 +26,18 @@
 - Generate art or use univision as a filter
 
 ## How To
+### Install Dependencies
+`pip3 install -r requirements.txt`
+### Convert Image
 Color: `./convert.py <path_to_image_file>`
-
 B/W: `./convert.py <path_to_image_file> bw`
 
-## Taylor Swift Sample
+## Taylor Swift Color Sample
 ![Sample of Taylor Swift Conversion](/taylor_sample.png)
 
 [Original](https://akns-images.eonline.com/eol_images/Entire_Site/2017107/rs_1080x1920-171107070604-1080.taylor-swift.11717.jpg)
 
-## Lightning Skull Black and White
+## Lightning Skull B/W Sample
 ```
                                  ▂▃▄▄▅▅▅▅▅▅▄▄▃▂
                            ▂▄▅▆██████████████████▆▅◣▂
@@ -84,4 +86,5 @@ B/W: `./convert.py <path_to_image_file> bw`
 - Multicore or GPU rendering
 - Video Streaming
 - OCR string injection
-- VNC to Unicode
+- VNC to Unicod
+- Reduce dependencies
