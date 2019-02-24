@@ -16,6 +16,25 @@ warnings.simplefilter("ignore", category=DeprecationWarning)
 # However, imageio.imread is incompatible with Pillow Image objects so...
 from scipy.misc import imread
 
+# Character Sets (represented as integers)
+CHAR_SETS={}
+CHAR_SETS['windows'] = [9600, 9604, 9608, 9612, 9616, 9617, 9618, 9619, 32]
+CHAR_SETS['default'] = ([x for x in range(9602, 9615)] + # shapes
+                        [x for x in range(9616, 9621)] + # more shapes
+                        [x for x in range(9698, 9701)] + [32]) # triangles, blank
+
+def main():
+    """Executes CLI conversion based on arguments passed through argparse"""
+    p = argparse.ArgumentParser(description='Convert images into unicode')
+    p.add_argument('image', metavar='<path>', type=str,
+                   help='path to the image file')
+    p.add_argument('--x256', action='store_true',
+                   help='prints with x256 unicode coloring')
+    p.add_argument('--char-set', metavar='<name>', default='default',
+                   help='prints with character set (e.g. windows)')
+    args = p.parse_args()
+    print_image_as_unicode(args.image, char_set=CHAR_SETS[args.char_set],
+                           x256=args.x256)
 
 def mse(image1, image2):
     """Calculate the mean squared error between two images."""
@@ -75,7 +94,7 @@ def create_unicode_image(unicode_character):
     unicode_text = unicode_character
     im = Image.new ("RGB", (width, height), background_color )
     draw = ImageDraw.Draw ( im )
-    unicode_font = ImageFont.truetype("Hack-Regular.ttf", font_size)
+    unicode_font = ImageFont.truetype("UbuntuMono-R.ttf", font_size)
     draw.text ((0,0), unicode_text, font=unicode_font, fill=font_color )
     # https://stackoverflow.com/a/22612295
     # Return the image as a file object
@@ -86,17 +105,20 @@ def create_unicode_image(unicode_character):
     return unicode_file
 
 
-def print_image_as_unicode(image_file, mode):
+def print_image_as_unicode(image_file, **kwargs):
     """
     Ingest a file and slice it into 10x20 bitmaps which are compared with
     bitmaps of unicode charcters. The most similar character is printed with
     x256 color which is most like the average color for the 10x20 bitmap slice.
     """
+    char_set = kwargs['char_set']
+    x256_mode = kwargs['x256']
     height = 20 # height of unicode character
     width = 10 # width of the unicode characters we are using
     # Credit ElTero and ABM (https://stackoverflow.com/a/7051075)
     im = Image.open(image_file)
     imgwidth, imgheight = im.size
+
     for row in range(imgheight//height):
         last_avg_color = np.array([0,0,0])
         for column in range(imgwidth//width):
@@ -104,21 +126,13 @@ def print_image_as_unicode(image_file, mode):
             cropped = im.crop(box)
             lowest_value = 100000
             lowest_unicode = None
-            characters = []
-            # experiment with different characters
-            characters.extend([x for x in range(9602, 9615)]) # shapes
-            characters.extend([x for x in range(9616, 9621)]) # shapes
-            #characters.extend([x for x in range(9622, 9631)]) # shapes
-            characters.extend([x for x in range(9698, 9701)]) # triangles
-            characters.append(32) # blank space
-            #characters.extend([x for x in range(11, 11632)]) 
-            for unicode in characters:
+            for unicode in char_set:
                 unicode = chr(unicode)
                 dissimilarity = compare(create_unicode_image(unicode), cropped)
                 if dissimilarity < lowest_value:
                     lowest_value = dissimilarity
                     lowest_unicode = unicode
-            if mode == 'x256':
+            if x256_mode:
                 # Credit: Ruan B. (until URL)
                 avg_color_per_row = np.average(cropped, axis=0)
                 avg_color = np.average(avg_color_per_row, axis=0)[:3]
@@ -136,15 +150,12 @@ def print_image_as_unicode(image_file, mode):
                                                                 x256_bg_color) + 
                           '{0}\033[0m'.format(lowest_unicode), end='')
                 last_avg_color = avg_color
-            elif mode == 'bw':
+            else:
                 print(lowest_unicode, end='')
-        print('', end='\r\n\x1b[39m')
-
+        if x256_mode:
+            print('\x1b[39m', end='\r\n')
+        else:
+            print('', end='\r\n')
 
 if __name__ == '__main__':
-    image = open(sys.argv[1], 'rb')
-    if len(sys.argv) == 3:
-        mode = sys.argv[2]
-    else:
-        mode = 'x256'
-    print_image_as_unicode(image, mode)
+    main()
