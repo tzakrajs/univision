@@ -100,7 +100,7 @@ def create_unicode_image(unicode_character):
     unicode_text = unicode_character
     im = Image.new ("RGB", (width, height), background_color )
     draw = ImageDraw.Draw ( im )
-    unicode_font = ImageFont.truetype("UbuntuMono-R.ttf", font_size)
+    unicode_font = ImageFont.truetype("Hack-Regular.ttf", font_size)
     draw.text ((0,0), unicode_text, font=unicode_font, fill=font_color )
     # https://stackoverflow.com/a/22612295
     # Return the image as a file object
