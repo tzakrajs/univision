@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
-import sys
+import argparse
 from io import BytesIO
+import sys
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
-# TODO: use imageio.imread instead of scipy.misc.imread
-from scipy.misc import imread
 from skimage.measure import compare_ssim as ssim
 from x256 import x256
 
 # Disable DeprecationWarnings, specifically because of:
 #   `imread` is deprecated in SciPy 1.0.0, and will be removed in 1.2.0.
 #   Use ``imageio.imread`` instead.
-# However, imageio.imread is incompatible with Pillow Image objects so...
 import warnings
 warnings.simplefilter("ignore", category=DeprecationWarning)
+# However, imageio.imread is incompatible with Pillow Image objects so...
+from scipy.misc import imread
+
 
 def mse(image1, image2):
     """Calculate the mean squared error between two images."""
