@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import argparse
-from io import BytesIO
+from io import BytesIO, IOBase
 import sys
 
 import numpy as np
@@ -13,7 +13,7 @@ from x256 import x256
 #   Use ``imageio.imread`` instead.
 import warnings
 warnings.simplefilter("ignore", category=DeprecationWarning)
-# However, imageio.imread is incompatible with Pillow Image objects so...
+# However, imageio.imread is incompatible with file-like object so...
 from scipy.misc import imread
 
 # Character Sets (represented as integers)
@@ -27,8 +27,8 @@ def main():
     """Executes CLI conversion based on arguments passed through argparse"""
     p = argparse.ArgumentParser(description='Convert images into unicode')
     p.add_argument('image', metavar='<path>', type=str,
-                   help='path to the image file')
-    p.add_argument('--x256', action='store_true',
+                   help='path to the file, use - for stdin')
+    p.add_argument('--no-x256', action='store_false', dest='x256', default=True,
                    help='prints with x256 unicode coloring')
     p.add_argument('--char-set', metavar='<name>', default='default',
                    help='prints with character set (e.g. windows)')
@@ -36,39 +36,44 @@ def main():
     print_image_as_unicode(args.image, char_set=CHAR_SETS[args.char_set],
                            x256=args.x256)
 
-def mse(image1, image2):
+
+def mse(image_a, image_b):
     """Calculate the mean squared error between two images."""
     # Credit Adrian Rosebrock
     # https://www.pyimagesearch.com/2014/09/15/python-compare-two-images/
-    err = np.sum((image1.astype("float") - image2.astype("float")) ** 2)
-    err /= float(image1.shape[0] * image1.shape[1])
+    err = np.sum((image_a.astype("float") - image_b.astype("float")) ** 2)
+    err /= float(image_a.shape[0] * image_a.shape[1])
     return err
 
 
-def compare(file1, file2):
+def standardize_format(image):
+    """Convert to numpy array as floats for use in comparisons"""
+    if isinstance(image, Image.Image):
+        new_file = BytesIO()
+        image.save(new_file, format='PNG')
+        new_file.seek(0)
+        return imread(new_file).astype(float)
+    elif isinstance(image, IOBase):
+        return imread(image).astype(float)
+    elif isinstance(image, np.ndarray):
+        return image
+    else:
+        raise RuntimeError("Couldn't determine type of image to normalize.")
+
+
+def compare(image_a, image_b):
     """
     Compare two image files, can be given as Image or File objects.
     Comparison returns a float which indicates the relative similarity.
     Lower is more similar.
     """
-    if isinstance(file1, Image.Image):
-        new_file1 = BytesIO()
-        file1.save(new_file1, format='PNG')
-        new_file1.seek(0)
-        image_float1 = imread(new_file1).astype(float)
-    else:
-        image_float1 = imread(file1).astype(float)
-    if isinstance(file2, Image.Image):
-        new_file2 = BytesIO()
-        file2.save(new_file2, format='PNG')
-        new_file2.seek(0)
-        image_float2 = imread(new_file2).astype(float)
-    else:
-        image_float2 = imread(file2).astype(float)
-    img1 = to_grayscale(image_float1)
-    img2 = to_grayscale(image_float2)
-    err = mse(img1, img2)
+    image_a = standardize_format(image_a)
+    grayscale_image_a = to_grayscale(image_a)
+    image_b = standardize_format(image_b)
+    grayscale_image_b = to_grayscale(image_b)
+    err = mse(image_a, image_b)
     return err
+
 
 def to_grayscale(image):
     # Credit sastanin (https://stackoverflow.com/a/3935002)
@@ -77,6 +82,7 @@ def to_grayscale(image):
         return np.average(image, -1) # average the last axis (color channels)
     else:
         return image
+
 
 unicode_cache = {}
 def create_unicode_image(unicode_character):
@@ -116,6 +122,10 @@ def print_image_as_unicode(image_file, **kwargs):
     height = 20 # height of unicode character
     width = 10 # width of the unicode characters we are using
     # Credit ElTero and ABM (https://stackoverflow.com/a/7051075)
+    if image_file == '-':
+        source = sys.stdin.buffer
+        image_file = BytesIO()
+        image_file.write(source.read())
     im = Image.open(image_file)
     imgwidth, imgheight = im.size
 
@@ -156,6 +166,7 @@ def print_image_as_unicode(image_file, **kwargs):
             print('\x1b[39m', end='\r\n')
         else:
             print('', end='\r\n')
+
 
 if __name__ == '__main__':
     main()
