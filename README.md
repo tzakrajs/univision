@@ -86,5 +86,5 @@ B/W: `./convert.py <path_to_image_file> bw`
 - Multicore or GPU rendering
 - Video Streaming
 - OCR string injection
-- VNC to Unicod
+- VNC to Unicode
 - Reduce dependencies
