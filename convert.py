@@ -5,16 +5,9 @@ import sys
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
-from skimage.measure import compare_ssim as ssim
+from skimage.metrics import structural_similarity as ssim
 from x256 import x256
-
-# Disable DeprecationWarnings, specifically because of:
-#   `imread` is deprecated in SciPy 1.0.0, and will be removed in 1.2.0.
-#   Use ``imageio.imread`` instead.
-import warnings
-warnings.simplefilter("ignore", category=DeprecationWarning)
-# However, imageio.imread is incompatible with file-like object so...
-from scipy.misc import imread
+import imageio.v2 as imageio
 
 # Character Sets (represented as integers)
 CHAR_SETS={}
@@ -52,9 +45,10 @@ def standardize_format(image):
         new_file = BytesIO()
         image.save(new_file, format='PNG')
         new_file.seek(0)
-        return imread(new_file).astype(float)
+        return imageio.imread(new_file).astype(float)
+
     elif isinstance(image, IOBase):
-        return imread(image).astype(float)
+        return imageio.imread(image).astype(float)
     elif isinstance(image, np.ndarray):
         return image
     else:
@@ -71,7 +65,7 @@ def compare(image_a, image_b):
     grayscale_image_a = to_grayscale(image_a)
     image_b = standardize_format(image_b)
     grayscale_image_b = to_grayscale(image_b)
-    err = mse(image_a, image_b)
+    err = mse(grayscale_image_a, grayscale_image_b)
     return err
 
 
